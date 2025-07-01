@@ -11,7 +11,7 @@ from wordcloud import WordCloud
 import seaborn as sns
 import os
 import joblib
-from text_preprocessing2 import TextPreprocessor
+from text_preprocessing import TextPreprocessor
 import tempfile
 from joblib import Parallel, delayed
 
