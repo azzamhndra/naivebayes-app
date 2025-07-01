@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../static/css/result.css">
+    <link rel="icon" type="image/x-icon" href="../static/images/logo.ico">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet">
+    <title>Hasil Klasifikasi | Sentylze</title>
+</head>
+<body>
+
+    <div class="container">
+
+        <header>
+            <div class="logo">
+                <img src="/static/images/logo.png" alt="">
+            </div>
+            <nav>
+                <a href="/beranda">Beranda</a>
+                <a href="/klasifikasi" class="active">Klasifikasi</a>
+            </nav>
+            <div class="social-media">
+                <a href="" target="_blank">
+                    <i class="ri-github-fill"></i>
+                </a>
+            </div>
+        </header>
+
+        <section>
+            <div class="result-wrapper">
+                <div class="top-wrapper">
+                    <div class="bar-chart top-box">
+                        <p>Distribusi <span>Akurasi per Fold</span></p>
+                        <div class="img">
+                            <img src="../static/images/bar_chart.png" alt="Grafik Akurasi per Fold">
+                        </div>
+                    </div>
+                    <div class="wordcloud top-box">
+                        <p>Word <span>Cloud</span></p>
+                        <div class="img">
+                            <img src="../static/images/wordcloud.png" alt="Word Cloud">
+                        </div>
+                    </div>
+                    <div class="pie-chart top-box">
+                        <p>Distribusi Klasifikasi<span>Sentimen</span></p>
+                        <div class="img">
+                            <img src="../static/images/pie_chart.png" alt="Pie Chart">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bot-wrapper">
+                    <div class="hasil-klasifikasi">
+                        <p>Hasil <span>Klasifikasi</span></p>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fold Ke-</th>
+                                    <th class="italic">Accuracy</th>
+                                    <th class="italic">Precision</th>
+                                    <th class="italic">Recall</th>
+                                    <th class="italic">F-Measure</th>
+                                    <th class="italic">TP</th>
+                                    <th class="italic">TN</th>
+                                    <th class="italic">FP</th>
+                                    <th class="italic">FN</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for i in range(fold_accuracies|length) %}
+                                <tr>
+                                    <td>{{ i + 1 }}</td>
+                                    <td>{{ fold_accuracies[i] }}</td>
+                                    <td>{{ fold_precisions[i] }}</td>
+                                    <td>{{ fold_recalls[i] }}</td>
+                                    <td>{{ fold_f1_scores[i] }}</td>
+                                    <td>{{ fold_tps[i] }}</td>
+                                    <td>{{ fold_tns[i] }}</td>
+                                    <td>{{ fold_fps[i] }}</td>
+                                    <td>{{ fold_fns[i] }}</td>
+                                </tr>
+                                {% endfor %}
+                                <tr>
+                                    <td>Rata-Rata</td>
+                                    <td>{{ avg_accuracy }}</td>
+                                    <td>{{ avg_precision }}</td>
+                                    <td>{{ avg_recall }}</td>
+                                    <td>{{ avg_f1_score }}</td>
+                                    <td colspan="4"></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="klasifikasi-input">
+                <p class="header-text">Klasifikasi <span>Input Teks</span></p>
+                <div class="error-wrapper" id="error-wrapper" style="display: none;">
+                    <i class="ri-error-warning-fill"></i>
+                    <p class="error-text" id="error-message">Input harus berisi minimal 3 kata.</p>
+                </div>
+                <form id="manual-classification-form">
+                    <input type="text" id="manual-text" placeholder="Masukkan teks untuk klasifikasi" required>
+                    <button type="submit">Klasifikasi</button>
+                </form>
+                <p class="prediksi-text" id="classification-result" style="display: none;">
+                    Prediksi: <span id="sentimen-result"></span>  | Confidence Score: <span id="confidence-score"></span>
+                </p>
+            </div>
+        </section>
+
+    </div>
+
+<script>
+document.getElementById('manual-classification-form').addEventListener('submit', function(event) {
+    event.preventDefault(); // Mencegah form untuk refresh halaman secara default
+
+    // Ambil input teks dari form
+    const manualText = document.getElementById('manual-text').value.trim();
+    const errorWrapper = document.getElementById('error-wrapper'); // Ambil elemen wrapper untuk pesan kesalahan
+    const errorMessage = document.getElementById('error-message'); // Ambil elemen untuk pesan kesalahan
+
+    // Reset pesan kesalahan
+    errorWrapper.style.display = "none";
+
+    if (manualText === "") {
+        errorMessage.textContent = "Teks input tidak boleh kosong!";
+        errorWrapper.style.display = "flex"; // Tampilkan pesan kesalahan
+        return;
+    }
+
+    if (manualText.split(" ").length < 3) {
+        errorMessage.textContent = "Input harus berisi minimal 3 kata!";
+        errorWrapper.style.display = "flex"; // Tampilkan pesan kesalahan
+        return;
+    }
+
+    // Menampilkan loading atau pesan sementara jika diperlukan
+    const classificationResult = document.getElementById('classification-result');
+    const sentimentResult = document.getElementById('sentimen-result');
+    const confidenceScore = document.getElementById('confidence-score');
+    classificationResult.style.display = "none"; // Sembunyikan hasil klasifikasi sebelumnya
+    confidenceScore.textContent = ""; // Reset confidence score
+
+    // Kirimkan data teks ke server menggunakan AJAX
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', 'klasifikasi-manual', true); // Endpoint API untuk klasifikasi manual
+    xhr.setRequestHeader('Content-Type', 'application/json'); // Set header content type ke JSON
+
+    // Kirimkan data teks dalam format JSON
+    xhr.send(JSON.stringify({ text: manualText }));
+
+    // Tangani respon dari server
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            // Ambil hasil klasifikasi dari response
+            const response = JSON.parse(xhr.responseText);
+            const sentimen = response.sentimen; // Asumsikan server mengirimkan hasil prediksi sebagai 'sentimen'
+            const confidence = response.confidence_score; // Ambil confidence score dari response
+            
+            // Tampilkan hasil klasifikasi
+            sentimentResult.textContent = sentimen;
+            confidenceScore.textContent = confidence ? confidence.toFixed(2) : "N/A"; // Tampilkan confidence score
+            classificationResult.style.display = "block"; // Menampilkan hasil klasifikasi
+        } else {
+            // Tangani error jika ada
+            errorMessage.textContent = "Terjadi kesalahan dalam klasifikasi. Silakan coba lagi.";
+            errorWrapper.style.display = "block"; // Tampilkan pesan kesalahan
+        }
+    };
+});
+
+</script>
+</body>
+</html>
