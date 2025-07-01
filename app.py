@@ -330,6 +330,3 @@ def result():
     bar_chart_url = generate_bar_chart(metrics['fold_accuracies'])
 
     return render_template('result.html', **metrics, pie_chart_url=pie_chart_url, wordcloud_url=wordcloud_url, bar_chart_url=bar_chart_url)
-
-if __name__ == '__main__':
-    app.run(port=5002)
